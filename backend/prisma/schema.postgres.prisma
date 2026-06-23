@@ -1,0 +1,88 @@
+// PostgreSQL variant — used in production (Render + Neon).
+// Local dev and tests use schema.prisma (SQLite).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  stepProgress    StepProgress[]
+  badgeAwards     BadgeAward[]
+  streakDays      StreakDay[]
+  clinicalLogs    ClinicalLogEntry[]
+  enrollments     Enrollment[]
+
+  @@map("users")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseCode String
+  startedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseCode])
+  @@map("enrollments")
+}
+
+model StepProgress {
+  // Unique per user+step so completing a step can't award XP twice.
+  id           String   @id @default(cuid())
+  userId       String
+  stepId       String
+  courseCode   String
+  xpAwarded    Int
+  completedAt  DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stepId])
+  @@index([userId, courseCode])
+  @@map("step_progress")
+}
+
+model BadgeAward {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("badge_awards")
+}
+
+model StreakDay {
+  // One row per calendar day the user was active.
+  id     String @id @default(cuid())
+  userId String
+  // YYYY-MM-DD (UTC) — the active day.
+  date   String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("streak_days")
+}
+
+model ClinicalLogEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  courseCode String?
+  note       String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("clinical_log_entries")
+}

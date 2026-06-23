@@ -1,0 +1,31 @@
+# Render Blueprint — NursePath backend
+# https://render.com/docs/blueprint-spec
+#
+# Pre-requisites:
+#   1. Create a Neon Postgres database (free tier) at https://neon.tech
+#   2. Copy the connection string (postgresql://...?sslmode=require)
+#
+# Deploy:
+#   - Create a new Blueprint on Render pointing to this repo
+#   - Set DATABASE_URL, JWT_SECRET, and FRONTEND_ORIGIN as env vars
+#   - Render runs `build:render` then `start`
+
+services:
+  - type: web
+    name: nursepath-api
+    runtime: node
+    plan: free
+    # Render runs these from the repo root.
+    buildCommand: cd backend && npm ci && npm run build:render
+    startCommand: cd backend && npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false  # Set in Render dashboard → Neon Postgres connection string
+      - key: JWT_SECRET
+        sync: false  # Set in Render dashboard → openssl rand -base64 32
+      - key: FRONTEND_ORIGIN
+        sync: false  # Set in Render dashboard → your Vercel URL
