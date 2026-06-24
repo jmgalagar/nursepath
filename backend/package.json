@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "build:render": "npm run prisma:generate:postgres && prisma migrate deploy --schema=prisma/schema.postgres.prisma && tsc -p tsconfig.json",
+    "build:render": "npm run prisma:generate:postgres && prisma db push --schema=prisma/schema.postgres.prisma && tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
