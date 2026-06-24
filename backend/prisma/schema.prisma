@@ -1,0 +1,106 @@
+// NursePath data model.
+//
+// Only USER STATE lives in the database: progress, XP awards, badges, streaks,
+// clinical-log entries. Course CONTENT (courses/units/pathways/steps/quizzes/
+// simulations) is authored as TypeScript modules in src/content/ and served
+// read-only, so it stays easy to edit and never needs seeding as rows.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  passwordHash      String
+  verified          Boolean  @default(false)
+  verificationToken String?
+  isAdmin           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  stepProgress    StepProgress[]
+  badgeAwards     BadgeAward[]
+  streakDays      StreakDay[]
+  clinicalLogs    ClinicalLogEntry[]
+  enrollments     Enrollment[]
+  suggestions     Suggestion[]
+
+  @@map("users")
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseCode String
+  startedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseCode])
+  @@map("enrollments")
+}
+
+model StepProgress {
+  // Unique per user+step so completing a step can't award XP twice.
+  id           String   @id @default(cuid())
+  userId       String
+  stepId       String
+  courseCode   String
+  xpAwarded    Int
+  completedAt  DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, stepId])
+  @@index([userId, courseCode])
+  @@map("step_progress")
+}
+
+model BadgeAward {
+  id        String   @id @default(cuid())
+  userId    String
+  badgeId   String
+  awardedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@map("badge_awards")
+}
+
+model StreakDay {
+  // One row per calendar day the user was active.
+  id     String @id @default(cuid())
+  userId String
+  // YYYY-MM-DD (UTC) — the active day.
+  date   String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("streak_days")
+}
+
+model ClinicalLogEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  courseCode String?
+  note       String
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("clinical_log_entries")
+}
+
+model Suggestion {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("suggestions")
+}

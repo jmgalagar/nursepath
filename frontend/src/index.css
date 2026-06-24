@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: #2A7FFF;
+    --color-primary-light: #5B9CFF;
+    --color-primary-dark: #1A5FCC;
+    --color-secondary: #00BFA6;
+    --color-secondary-light: #33D4BF;
+    --color-secondary-dark: #009E8B;
+    --color-alert: #E53935;
+    --color-alert-light: #FF7043;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900 antialiased font-sans;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold tracking-tight text-gray-900;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary
+           px-4 py-2.5 text-sm font-medium text-white shadow-sm min-h-[40px]
+           hover:bg-primary-700 active:bg-primary-800
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-secondary
+           px-4 py-2.5 text-sm font-medium text-white shadow-sm min-h-[40px]
+           hover:bg-secondary-600 active:bg-secondary-700
+           focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+           px-4 py-2.5 text-sm font-medium text-gray-700 min-h-[40px]
+           hover:bg-gray-100 active:bg-gray-200
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-alert
+           px-4 py-2.5 text-sm font-medium text-white shadow-sm min-h-[40px]
+           hover:bg-alert-700 active:bg-red-800
+           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .card {
+    @apply bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden
+           hover:shadow-md transition-shadow;
+  }
+
+  .card-body {
+    @apply p-5;
+  }
+
+  .input-field {
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5
+           text-sm text-gray-900 placeholder-gray-400
+           focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none
+           disabled:bg-gray-50 disabled:text-gray-500;
+  }
+
+  .badge-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge-chip bg-primary/10 text-primary;
+  }
+
+  .badge-secondary {
+    @apply badge-chip bg-secondary/10 text-secondary;
+  }
+
+  .badge-gold {
+    @apply badge-chip bg-amber-100 text-amber-800;
+  }
+
+  .progress-bar {
+    @apply h-2 w-full rounded-full bg-gray-200 overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full rounded-full bg-primary transition-all duration-500 ease-out;
+  }
+}
+
+/* ---- Toast animations ---------------------------------------------------- */
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in 0.3s ease-out;
+}
+
+/* ---- Dark mode overrides ------------------------------------------------- */
+
+.dark body {
+  @apply bg-gray-950 text-gray-100;
+}
+
+/* Override common light backgrounds for dark mode */
+.dark .bg-white { @apply bg-gray-800; }
+.dark .bg-gray-50 { @apply bg-gray-900; }
+.dark .bg-gray-100 { @apply bg-gray-700; }
+
+/* Bump very dark text to readable grays on dark backgrounds.
+   Only necessary for text-gray-700+ which are too dark on bg-gray-950. */
+.dark .text-gray-700 { @apply text-gray-500; }
+.dark .text-gray-800 { @apply text-gray-400; }
+.dark .text-gray-900 { @apply text-gray-300; }
+
+.dark .card {
+  @apply bg-gray-800 border-gray-700;
+}
+
+.dark .card-body {
+  @apply text-gray-200;
+}
+
+.dark .input-field {
+  @apply bg-gray-800 border-gray-600 text-gray-100 placeholder-gray-500 disabled:bg-gray-800/50 disabled:text-gray-400;
+}
+
+.dark .btn-ghost {
+  @apply text-gray-300 hover:bg-gray-700 active:bg-gray-600;
+}
+
+.dark .badge-gold {
+  @apply bg-amber-900/40 text-amber-300;
+}
+
+.dark .progress-bar {
+  @apply bg-gray-700;
+}
+
+.dark hr {
+  @apply border-gray-700;
+}
+
+.dark .badge-chip {
+  @apply text-gray-300;
+}
+
+/* Scrollbar for dark mode */
+.dark ::-webkit-scrollbar-thumb {
+  @apply bg-gray-600;
+}

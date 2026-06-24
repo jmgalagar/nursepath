@@ -1,0 +1,25 @@
+{
+  "name": "nursepath",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NursePath — interactive nursing learning platform (Philippine BSN curriculum)",
+  "workspaces": [
+    "shared",
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n shared,api,web -c magenta,yellow,cyan \"npm:dev:shared\" \"npm:dev --workspace backend\" \"npm:dev --workspace frontend\"",
+    "dev:shared": "echo \"shared types (static)\"",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "echo \"(lint placeholder)\"",
+    "seed": "npm run seed --workspace backend",
+    "setup": "npm install && npm run prisma:generate && npm run prisma:migrate && npm run seed",
+    "prisma:generate": "npm run prisma:generate --workspace backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
