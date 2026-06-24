@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { CardBody, ProgressBar, BadgeChip, Spinner, EmptyState } from "../components/ui";
+import { useToast } from "../components/Toast";
 import type { Course, CourseProgress } from "@nursepath/shared";
 import * as api from "../lib/api";
 
 export default function CoursePage() {
   const { code } = useParams<{ code: string }>();
+  const { toast } = useToast();
   const [course, setCourse] = useState<Course | null>(null);
   const [progress, setProgress] = useState<CourseProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export default function CoursePage() {
         setCourse(c);
         setProgress(p);
       })
-      .catch(() => {})
+      .catch(() => toast("Failed to load course. Please try again.", "error"))
       .finally(() => setLoading(false));
   }, [code]);
 

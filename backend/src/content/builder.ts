@@ -113,7 +113,7 @@ export function quiz(
   title: string,
   summary: string,
   questions: Omit<QuizQuestion, "id">[],
-  opts: StepOpts & { passThreshold?: number } = {},
+  opts: StepOpts & { passThreshold?: number; timeLimit?: number } = {},
 ): Omit<Step, "id"> & { kind: "quiz" } {
   return {
     kind: "quiz",
@@ -124,6 +124,7 @@ export function quiz(
     skills: opts.skills,
     xp: opts.xp,
     passThreshold: opts.passThreshold ?? 0.7,
+    timeLimit: opts.timeLimit,
   } as Omit<Step, "id"> & { kind: "quiz" };
 }
 

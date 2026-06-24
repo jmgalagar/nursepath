@@ -3,11 +3,13 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { CardBody, ProgressBar, EmptyState, Spinner } from "../components/ui";
 import { categoryColor } from "../components/ui";
+import { useToast } from "../components/Toast";
 import type { CourseSummary } from "@nursepath/shared";
 import * as api from "../lib/api";
 
 export default function CatalogPage() {
   const { allProgress } = useAuth();
+  const { toast } = useToast();
   const [summaries, setSummaries] = useState<CourseSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("ALL");
@@ -16,7 +18,7 @@ export default function CatalogPage() {
   useEffect(() => {
     api.getCourses()
       .then((data) => setSummaries(data))
-      .catch(() => {})
+      .catch(() => toast("Failed to load courses. Please try again.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -70,7 +72,7 @@ export default function CatalogPage() {
             <button
               key={cat}
               onClick={() => setFilter(cat)}
-              className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-full px-3 py-2 min-h-[36px] text-sm font-medium transition-colors ${
                 filter === cat
                   ? "bg-primary text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"

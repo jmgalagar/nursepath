@@ -17,7 +17,11 @@ import {
   listCourseSummaries,
 } from "./content/index.js";
 import { ALL_BADGES } from "./content/index.js";
-import { type AuthedRequest, requireAuth } from "./auth.js";
+import {
+  type AuthedRequest,
+  requireAuth,
+  requireAdmin,
+} from "./auth.js";
 import {
   buildGamificationState,
   evaluateBadges,
@@ -266,6 +270,97 @@ apiRouter.delete("/clinical-log/:id", requireAuth, async (req: AuthedRequest, re
     await prisma.clinicalLogEntry
       .delete({ where: { id: req.params.id, userId: req.userId! } })
       .catch(() => {});
+    res.status(204).end();
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ---- Suggestions / Feedback -------------------------------------------- */
+
+const suggestionSchema = z.object({
+  message: z.string().min(1).max(500),
+});
+
+apiRouter.post("/suggestions", requireAuth, async (req: AuthedRequest, res, next) => {
+  try {
+    const parsed = suggestionSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: "Invalid input" });
+    const entry = await prisma.suggestion.create({
+      data: { userId: req.userId!, message: parsed.data.message },
+    });
+    res.status(201).json(entry);
+  } catch (e) {
+    next(e);
+  }
+});
+
+apiRouter.get("/suggestions", requireAuth, async (req: AuthedRequest, res, next) => {
+  try {
+    const entries = await prisma.suggestion.findMany({
+      where: { userId: req.userId! },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+    res.json(entries);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/* ---- Admin -------------------------------------------------------------- */
+
+apiRouter.get("/admin/suggestions", requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const entries = await prisma.suggestion.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+      include: { user: { select: { name: true, email: true } } },
+    });
+    res.json(entries);
+  } catch (e) {
+    next(e);
+  }
+});
+
+apiRouter.get("/admin/users", requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const users = await prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isAdmin: true,
+        createdAt: true,
+        stepProgress: { select: { xpAwarded: true } },
+      },
+    });
+    const result = users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name,
+      isAdmin: u.isAdmin,
+      createdAt: u.createdAt,
+      totalXp: u.stepProgress.reduce((sum, sp) => sum + sp.xpAwarded, 0),
+    }));
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
+
+apiRouter.delete("/admin/users/:id", requireAdmin, async (req: AuthedRequest, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.params.id } });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Prevent deleting yourself.
+    if (user.id === req.userId) {
+      return res.status(400).json({ error: "Cannot delete your own account" });
+    }
+
+    await prisma.user.delete({ where: { id: req.params.id } });
     res.status(204).end();
   } catch (e) {
     next(e);

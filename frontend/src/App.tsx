@@ -10,6 +10,8 @@ import UnitPage from "./pages/UnitPage";
 import PathwayPage from "./pages/PathwayPage";
 import ProfilePage from "./pages/ProfilePage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import VerifyPage from "./pages/VerifyPage";
+import AdminPage from "./pages/AdminPage";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -41,6 +43,7 @@ export default function App() {
   return (
     <Routes>
       {/* Public */}
+      <Route path="/verify" element={<VerifyPage />} />
       <Route
         path="/login"
         element={
@@ -73,6 +76,7 @@ export default function App() {
         <Route path="/pathways/:pathwayId" element={<PathwayPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
 
       {/* Default */}

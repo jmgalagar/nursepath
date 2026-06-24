@@ -1,17 +1,17 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { Input, Button, CardBody } from "../components/ui";
 
 export default function RegisterPage() {
   const { register } = useAuth();
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -23,7 +23,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(email, password, name || undefined);
-      navigate("/dashboard", { replace: true });
+      setRegistered(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration failed";
       setError(msg);
@@ -32,8 +32,32 @@ export default function RegisterPage() {
     }
   }
 
+  if (registered) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white dark:via-gray-950 dark:via-gray-950 to-secondary/5 px-4">
+        <div className="w-full max-w-md text-center">
+          <span className="text-6xl">📧</span>
+          <h1 className="mt-4 text-2xl font-bold text-gray-900">Check your email</h1>
+          <p className="mt-2 text-gray-500">
+            We sent a verification link to <strong>{email}</strong>.
+            Click the link to activate your account.
+          </p>
+          <p className="mt-4 text-sm text-gray-400">
+            Didn't get it? Check your spam folder, or{" "}
+            <button onClick={() => setRegistered(false)} className="text-primary hover:underline">
+              try again
+            </button>.
+          </p>
+          <Link to="/login" className="btn-primary mt-6 inline-flex">
+            Back to Sign in
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white to-secondary/5 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white dark:via-gray-950 to-secondary/5 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">

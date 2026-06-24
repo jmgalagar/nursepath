@@ -3,6 +3,9 @@
  *
  * Stores the JWT in localStorage, exposes the current user via React context,
  * and provides login / register / logout actions.
+ *
+ * Intercepts 401 responses globally via api.setOnUnauthorized() so that
+ * expired tokens trigger an automatic logout + notification.
  */
 
 import {
@@ -15,6 +18,7 @@ import {
 } from "react";
 import type { AuthUser, GamificationState, CourseProgress } from "@nursepath/shared";
 import * as api from "./api";
+import { useToast } from "../components/Toast";
 
 interface AuthState {
   user: AuthUser | null;
@@ -44,6 +48,8 @@ export function useAuth(): AuthContextValue {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { toast } = useToast();
+
   const [state, setState] = useState<AuthState>({
     user: null,
     token: localStorage.getItem("np_token"),
@@ -52,6 +58,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     allProgress: null,
     completedSteps: new Set(),
   });
+
+  // Register a global 401 handler: on any expired/invalid JWT, log the user out.
+  useEffect(() => {
+    api.setOnUnauthorized(() => {
+      localStorage.removeItem("np_token");
+      setState({
+        user: null,
+        token: null,
+        loading: false,
+        gamification: null,
+        allProgress: null,
+        completedSteps: new Set(),
+      });
+    });
+  }, []);
 
   const hydrate = useCallback(async (token: string) => {
     try {
@@ -71,10 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         completedSteps: new Set(completedSteps),
       });
     } catch {
+      // The 401 handler above already fires for expired JWTs. This catch
+      // covers other failures (network, 5xx) during initial hydration.
+      toast("Could not load your data. Please sign in again.", "warning");
       localStorage.removeItem("np_token");
       setState((s) => ({ ...s, loading: false, token: null, user: null }));
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (state.token) {
@@ -92,7 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = useCallback(
     async (email: string, password: string, name?: string) => {
       const res = await api.register(email, password, name);
-      await hydrate(res.token);
+      // In test/dev mode a token may be returned; in production the user must verify email first.
+      if ("token" in res && res.token) {
+        await hydrate(res.token);
+      }
     },
     [hydrate],
   );
@@ -111,17 +138,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshGamification = useCallback(async () => {
     if (!state.token) return;
-    const gamification = await api.getGamification();
-    setState((s) => ({ ...s, gamification }));
+    try {
+      const gamification = await api.getGamification();
+      setState((s) => ({ ...s, gamification }));
+    } catch {
+      // 401 is handled globally; other failures are surface-level.
+    }
   }, [state.token]);
 
   const refreshProgress = useCallback(async () => {
     if (!state.token) return;
-    const [allProgress, completedSteps] = await Promise.all([
-      api.getAllProgress(),
-      api.getCompletedSteps(),
-    ]);
-    setState((s) => ({ ...s, allProgress, completedSteps: new Set(completedSteps) }));
+    try {
+      const [allProgress, completedSteps] = await Promise.all([
+        api.getAllProgress(),
+        api.getCompletedSteps(),
+      ]);
+      setState((s) => ({ ...s, allProgress, completedSteps: new Set(completedSteps) }));
+    } catch {
+      // 401 is handled globally.
+    }
   }, [state.token]);
 
   return (

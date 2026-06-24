@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 import { config } from "./config.js";
@@ -11,6 +12,7 @@ export function createApp() {
 
   app.use(cors({ origin: config.frontendOrigin, credentials: true }));
   app.use(express.json());
+  app.use(helmet());
 
   // Global rate limit: 200 requests / minute / IP.
   const apiLimiter = rateLimit({

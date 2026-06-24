@@ -104,6 +104,9 @@ export interface QuizStep extends StepBase {
   questions: QuizQuestion[];
   /** Pass threshold as a fraction (0..1). Default 0.7. */
   passThreshold?: number;
+  /** Optional time limit in minutes. When set, a countdown timer is shown
+   *  and the quiz auto-submits when time expires. */
+  timeLimit?: number;
 }
 
 /* ----------------------------------------------------------------------------
@@ -296,6 +299,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  isAdmin?: boolean;
 }
 
 export interface AuthResponse {

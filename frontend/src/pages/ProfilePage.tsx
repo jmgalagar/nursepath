@@ -1,16 +1,30 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../lib/auth";
-import { Card, CardBody, ProgressBar, BadgeChip, Button, Spinner, EmptyState, Textarea } from "../components/ui";
+import { Card, CardBody, ProgressBar, BadgeChip, Button, Spinner, EmptyState, Textarea, Input } from "../components/ui";
+import { useToast } from "../components/Toast";
 import type { Badge } from "@nursepath/shared";
 import * as api from "../lib/api";
 
 export default function ProfilePage() {
   const { user, gamification } = useAuth();
+  const { toast } = useToast();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [clinicalLog, setClinicalLog] = useState<api.ClinicalLogEntry[]>([]);
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Account edit state
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Password change state
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [savingPw, setSavingPw] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -21,7 +35,7 @@ export default function ProfilePage() {
         setBadges(b);
         setClinicalLog(log);
       })
-      .catch(() => {})
+      .catch(() => toast("Failed to load profile data.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -34,7 +48,10 @@ export default function ProfilePage() {
       const entry = await api.addClinicalLog(newNote.trim());
       setClinicalLog((prev) => [entry, ...prev]);
       setNewNote("");
-    } catch {} finally {
+      toast("Entry added.", "success");
+    } catch {
+      toast("Failed to save entry.", "error");
+    } finally {
       setSaving(false);
     }
   }
@@ -43,7 +60,9 @@ export default function ProfilePage() {
     try {
       await api.deleteClinicalLog(id);
       setClinicalLog((prev) => prev.filter((e) => e.id !== id));
-    } catch {}
+    } catch {
+      toast("Failed to delete entry.", "error");
+    }
   }
 
   if (loading) {
@@ -81,6 +100,87 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* Account management */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Account</h2>
+          {!editing && (
+            <Button variant="ghost" size="sm" onClick={() => { setEditName(user?.name ?? ""); setEditEmail(user?.email ?? ""); setEditing(true); }}>
+              Edit Profile
+            </Button>
+          )}
+        </div>
+
+        <Card>
+          <CardBody className="space-y-4">
+            {!editing ? (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider">Name</p>
+                    <p className="mt-1 text-sm font-medium">{user?.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wider">Email</p>
+                    <p className="mt-1 text-sm font-medium">{user?.email}</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <Input label="Name" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                <Input label="Email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+                <div className="flex gap-3 justify-end">
+                  <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+                  <Button
+                    disabled={savingProfile || !editName.trim()}
+                    onClick={async () => {
+                      setSavingProfile(true);
+                      try {
+                        await api.updateProfile({ name: editName.trim(), email: editEmail.trim() });
+                        toast("Profile updated.", "success");
+                        setEditing(false);
+                      } catch { toast("Failed to update profile.", "error"); }
+                      finally { setSavingProfile(false); }
+                    }}
+                  >
+                    {savingProfile ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              </>
+            )}
+
+            <hr className="border-gray-100" />
+
+            <h3 className="text-sm font-semibold text-gray-700">Change Password</h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Input label="Current password" type="password" value={pwCurrent} onChange={(e) => setPwCurrent(e.target.value)} />
+              <Input label="New password" type="password" value={pwNew} onChange={(e) => setPwNew(e.target.value)} minLength={6} />
+              <Input label="Confirm new password" type="password" value={pwConfirm} onChange={(e) => setPwConfirm(e.target.value)} minLength={6} />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                disabled={savingPw || !pwCurrent || !pwNew || pwNew.length < 6 || pwNew !== pwConfirm}
+                onClick={async () => {
+                  setSavingPw(true);
+                  try {
+                    await api.changePassword(pwCurrent, pwNew);
+                    toast("Password changed.", "success");
+                    setPwCurrent(""); setPwNew(""); setPwConfirm("");
+                  } catch (err: unknown) {
+                    const msg = err instanceof Error ? err.message : "Failed to change password.";
+                    toast(msg, "error");
+                  }
+                  finally { setSavingPw(false); }
+                }}
+              >
+                {savingPw ? "Changing…" : "Change Password"}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+      </section>
 
       {/* Badges */}
       <section>

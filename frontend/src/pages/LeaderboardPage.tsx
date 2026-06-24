@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { Spinner, EmptyState, Card, CardBody } from "../components/ui";
+import { useToast } from "../components/Toast";
 import type { LeaderboardEntry } from "../lib/api";
 import * as api from "../lib/api";
 import { useAuth } from "../lib/auth";
 
 export default function LeaderboardPage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.getLeaderboard()
       .then(setEntries)
-      .catch(() => {})
+      .catch(() => toast("Failed to load leaderboard.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -43,9 +45,10 @@ export default function LeaderboardPage() {
             </div>
           )}
 
-          {/* Full list */}
-          <Card>
-            <CardBody className="p-0">
+          {/* Full list — horizontal scroll on mobile */}
+          <div className="overflow-x-auto">
+            <Card>
+              <CardBody className="p-0 min-w-[480px]">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
@@ -89,7 +92,8 @@ export default function LeaderboardPage() {
                 </tbody>
               </table>
             </CardBody>
-          </Card>
+            </Card>
+          </div>
         </div>
       )}
     </div>

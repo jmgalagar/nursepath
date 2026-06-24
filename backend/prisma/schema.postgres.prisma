@@ -11,18 +11,22 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  name         String
-  passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  passwordHash      String
+  verified          Boolean  @default(false)
+  verificationToken String?
+  isAdmin           Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   stepProgress    StepProgress[]
   badgeAwards     BadgeAward[]
   streakDays      StreakDay[]
   clinicalLogs    ClinicalLogEntry[]
   enrollments     Enrollment[]
+  suggestions     Suggestion[]
 
   @@map("users")
 }
@@ -85,4 +89,14 @@ model ClinicalLogEntry {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("clinical_log_entries")
+}
+
+model Suggestion {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("suggestions")
 }

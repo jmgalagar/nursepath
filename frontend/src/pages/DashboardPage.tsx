@@ -2,15 +2,17 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { CardBody, ProgressBar, BadgeChip, EmptyState } from "../components/ui";
+import { useToast } from "../components/Toast";
 import type { CourseSummary } from "@nursepath/shared";
 import * as api from "../lib/api";
 
 export default function DashboardPage() {
   const { user, gamification, allProgress, refreshGamification } = useAuth();
+  const { toast } = useToast();
   const [summaries, setSummaries] = useState<CourseSummary[]>([]);
 
   useEffect(() => {
-    api.getCourses().then(setSummaries).catch(() => {});
+    api.getCourses().then(setSummaries).catch(() => toast("Failed to load courses. Please try again.", "error"));
     refreshGamification().catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

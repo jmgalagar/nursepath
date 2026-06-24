@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { CardBody, ProgressBar, Spinner, EmptyState, StepIcon } from "../components/ui";
+import { useToast } from "../components/Toast";
 import { useAuth } from "../lib/auth";
 import type { Unit, Pathway } from "@nursepath/shared";
 import * as api from "../lib/api";
 
 export default function UnitPage() {
   const { unitId } = useParams<{ unitId: string }>();
+  const { toast } = useToast();
   const [unit, setUnit] = useState<Unit | null>(null);
   const [courseCode, setCourseCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ export default function UnitPage() {
         setUnit(data.unit);
         setCourseCode(data.courseCode);
       })
-      .catch(() => {})
+      .catch(() => toast("Failed to load unit. Please try again.", "error"))
       .finally(() => setLoading(false));
   }, [unitId]);
 

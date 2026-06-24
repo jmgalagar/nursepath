@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Card, CardBody, Button, ProgressBar, Spinner, EmptyState, StepIcon } from "../components/ui";
+import { useToast } from "../components/Toast";
 import { useAuth } from "../lib/auth";
 import type {
   Pathway, Step, VideoStep, ReadingStep,
@@ -14,6 +15,7 @@ import remarkGfm from "remark-gfm";
 export default function PathwayPage() {
   const { pathwayId } = useParams<{ pathwayId: string }>();
   const { completedSteps, refreshGamification, refreshProgress } = useAuth();
+  const { toast } = useToast();
 
   const [pathway, setPathway] = useState<Pathway | null>(null);
   const [courseCode, setCourseCode] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export default function PathwayPage() {
         setUnitId(data.unitId);
         setUnitTitle(data.unitTitle);
       })
-      .catch(() => {})
+      .catch(() => toast("Failed to load pathway.", "error"))
       .finally(() => setLoading(false));
   }, [pathwayId]);
 
@@ -59,11 +61,22 @@ export default function PathwayPage() {
     const step = pathway.steps[activeStepIdx];
     if (!step) return;
 
-    setQuizAnswers({});
     setQuizSubmitted(false);
     setSimFeedback(null);
     setSimSuccess(false);
     setCheckedItems({});
+
+    // For quiz steps, restore answers from localStorage draft (survives refresh).
+    if (step.kind === "quiz") {
+      const saved = localStorage.getItem(`np_quiz_draft_${step.id}`);
+      if (saved) {
+        try { setQuizAnswers(JSON.parse(saved)); } catch { setQuizAnswers({}); }
+      } else {
+        setQuizAnswers({});
+      }
+    } else {
+      setQuizAnswers({});
+    }
 
     if (step.kind === "simulation") {
       const sim = step as SimulationStep;
@@ -80,6 +93,14 @@ export default function PathwayPage() {
       }
     }
   }, [pathway, activeStepIdx]);
+
+  // Persist quiz draft to localStorage whenever answers change.
+  useEffect(() => {
+    if (!pathway) return;
+    const step = pathway.steps[activeStepIdx];
+    if (!step || step.kind !== "quiz") return;
+    localStorage.setItem(`np_quiz_draft_${step.id}`, JSON.stringify(quizAnswers));
+  }, [quizAnswers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const currentStep: Step | undefined = pathway?.steps[activeStepIdx];
   const isCompleted = currentStep ? completedSteps.has(currentStep.id) : false;
@@ -100,7 +121,9 @@ export default function PathwayPage() {
         (s, i) => i > activeStepIdx && !completedSteps.has(s.id),
       );
       if (nextIdx !== -1) setActiveStepIdx(nextIdx);
-    } catch {} finally {
+    } catch {
+      toast("Failed to mark step as complete. Please try again.", "error");
+    } finally {
       setMarking(false);
     }
   }
@@ -114,6 +137,36 @@ export default function PathwayPage() {
       return next;
     });
   }
+
+  // Keyboard hint (shown briefly on first load).
+  const [showHint, setShowHint] = useState(true);
+  useEffect(() => {
+    if (showHint) {
+      const t = setTimeout(() => setShowHint(false), 4000);
+      return () => clearTimeout(t);
+    }
+  }, [showHint]);
+
+  // Keyboard navigation: ← → to move between steps.
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!pathway) return;
+      const allDone = pathway.steps.every((s) => completedSteps.has(s.id));
+      // Ignore when user is typing in an input / textarea / select.
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.key === "ArrowLeft" && activeStepIdx > 0) {
+        e.preventDefault();
+        setActiveStepIdx(activeStepIdx - 1);
+      } else if (e.key === "ArrowRight" && activeStepIdx < pathway.steps.length - 1 && !allDone) {
+        e.preventDefault();
+        setActiveStepIdx(activeStepIdx + 1);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [activeStepIdx, pathway, completedSteps]);
 
   if (loading) {
     return <div className="flex justify-center py-20"><Spinner size="lg" /></div>;
@@ -154,13 +207,22 @@ export default function PathwayPage() {
         </div>
       </div>
 
+      {/* Keyboard hint */}
+      {showHint && (
+        <div className="rounded-lg bg-gray-50 border border-gray-200 px-4 py-2 text-xs text-gray-400 text-center animate-fade-in">
+          💡 Use <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 text-xs font-mono">←</kbd>
+          <kbd className="rounded border border-gray-300 bg-white px-1.5 py-0.5 text-xs font-mono mx-1">→</kbd>
+          to navigate between steps
+        </div>
+      )}
+
       {/* Step progress bar */}
       <div className="flex items-center gap-2 flex-wrap">
         {pathway.steps.map((step, i) => (
           <button
             key={step.id}
             onClick={() => setActiveStepIdx(i)}
-            className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-sm font-medium transition-all ${
+            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-sm font-medium transition-all ${
               i === activeStepIdx
                 ? "bg-primary text-white shadow-md scale-110"
                 : completedSteps.has(step.id)
@@ -181,12 +243,12 @@ export default function PathwayPage() {
       {currentStep && !allDone && (
         <Card>
           <CardBody className="space-y-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
                 <StepIcon kind={currentStep.kind} />
-                <div>
-                  <h2 className="text-lg font-semibold">{currentStep.title}</h2>
-                  <p className="text-sm text-gray-500">{currentStep.summary}</p>
+                <div className="min-w-0">
+                  <h2 className="text-lg font-semibold truncate">{currentStep.title}</h2>
+                  <p className="text-sm text-gray-500 truncate">{currentStep.summary}</p>
                 </div>
               </div>
               <div className="flex flex-shrink-0 items-center gap-2">
@@ -215,8 +277,15 @@ export default function PathwayPage() {
             {currentStep.kind === "quiz" && (
               <QuizView step={currentStep as QuizStep} answers={quizAnswers} submitted={quizSubmitted}
                 onAnswer={(qid, idx) => setQuizAnswers((p) => ({ ...p, [qid]: idx }))}
-                onSubmit={() => setQuizSubmitted(true)}
-                onRetake={() => { setQuizAnswers({}); setQuizSubmitted(false); }}
+                onSubmit={() => {
+                  setQuizSubmitted(true);
+                  localStorage.removeItem(`np_quiz_draft_${currentStep.id}`);
+                }}
+                onRetake={() => {
+                  setQuizAnswers({});
+                  setQuizSubmitted(false);
+                  localStorage.removeItem(`np_quiz_draft_${currentStep.id}`);
+                }}
               />
             )}
 
@@ -276,8 +345,8 @@ function VideoView({ step }: { step: VideoStep }) {
   return (
     <div className="space-y-4">
       {step.url && (
-        <div className="aspect-video w-full rounded-lg bg-gray-900 overflow-hidden">
-          <iframe src={getEmbedUrl(step.url)} title={step.title} className="h-full w-full" allowFullScreen />
+        <div className="aspect-video w-full max-h-[60vh] rounded-lg bg-gray-900 overflow-hidden">
+          <iframe src={getEmbedUrl(step.url)} title={step.title} className="h-full w-full" allow="fullscreen" allowFullScreen />
         </div>
       )}
       {step.transcript && (
@@ -481,18 +550,91 @@ function QuizView({ step, answers, submitted, onAnswer, onSubmit, onRetake }: {
   const correctCount = step.questions.filter((q) => answers[q.id] === q.correctIndex).length;
   const score = step.questions.length > 0 ? correctCount / step.questions.length : 0;
   const passed = submitted && score >= passThreshold;
+  const stepId = step.id;
+
+  // Countdown timer — default 5 minutes per quiz
+  const timeLimit = step.timeLimit ?? 5;
+  const [remaining, setRemaining] = useState(timeLimit ? timeLimit * 60 : null);
+  const hasAutoSubmitted = useRef(false);
+
+  useEffect(() => {
+    if (remaining === null || submitted || remaining <= 0) return;
+    const timer = setInterval(() => {
+      setRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          // Auto-submit on expiry (only once).
+          if (!hasAutoSubmitted.current) {
+            hasAutoSubmitted.current = true;
+            // Use setTimeout(0) to avoid calling setState during render.
+            setTimeout(() => onSubmit(), 0);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [remaining === null, submitted]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reset auto-submit flag when retaking.
+  useEffect(() => {
+    if (!submitted) hasAutoSubmitted.current = false;
+  }, [submitted]);
+
+  const timerColor =
+    remaining === null
+      ? "bg-primary"
+      : remaining <= 30
+        ? "bg-alert"
+        : remaining <= 60
+          ? "bg-amber-500"
+          : "bg-primary";
+
+  function formatTime(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
 
   return (
     <div className="space-y-6">
+      {/* Timer bar */}
+      {remaining !== null && !submitted && (
+        <div className="rounded-lg border border-gray-200 p-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className={`text-xs font-semibold uppercase tracking-wider ${
+              remaining <= 30 ? "text-alert" : remaining <= 60 ? "text-amber-600" : "text-gray-500"
+            }`}>
+              ⏱ Time Remaining
+            </span>
+            <span className={`font-mono text-lg font-bold ${
+              remaining <= 30 ? "text-alert" : remaining <= 60 ? "text-amber-600" : "text-gray-700"
+            }`}>
+              {formatTime(remaining)}
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${timerColor}`}
+              style={{ width: `${(remaining / (timeLimit! * 60)) * 100}%` }}
+            />
+          </div>
+          {remaining <= 30 && (
+            <p className="mt-1 text-xs text-alert font-medium">⏰ Time is almost up!</p>
+          )}
+        </div>
+      )}
+
       {!submitted ? (
         <>
           {step.questions.map((q, qIdx) => (
-            <div key={q.id} className="rounded-lg border border-gray-200 p-4 space-y-3">
+            <div key={`${stepId}-${q.id}`} className="rounded-lg border border-gray-200 p-4 space-y-3">
               <h4 className="text-sm font-semibold text-gray-700">Question {qIdx + 1} of {step.questions.length}</h4>
               <p className="text-sm text-gray-800">{q.prompt}</p>
               <div className="space-y-2">
                 {q.options.map((opt, oIdx) => (
-                  <label key={`${q.id}-${oIdx}`} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${
+                  <label key={`${stepId}-${q.id}-${oIdx}`} className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition-colors ${
                     answers[q.id] === oIdx ? "border-primary bg-primary/5 text-primary font-medium" : "border-gray-200 text-gray-700 hover:bg-gray-50"
                   }`}>
                     <input type="radio" name={`quiz-${q.id}`} checked={answers[q.id] === oIdx}
@@ -504,7 +646,7 @@ function QuizView({ step, answers, submitted, onAnswer, onSubmit, onRetake }: {
             </div>
           ))}
           <div className="flex justify-center">
-            <Button onClick={onSubmit} disabled={Object.keys(answers).length < step.questions.length}>Submit Answers</Button>
+            <Button onClick={onSubmit} disabled={Object.keys(answers).length < step.questions.length && remaining !== 0}>Submit Answers</Button>
           </div>
         </>
       ) : (
@@ -518,7 +660,7 @@ function QuizView({ step, answers, submitted, onAnswer, onSubmit, onRetake }: {
             const userAnswer = answers[q.id];
             const isCorrect = userAnswer === q.correctIndex;
             return (
-              <div key={q.id} className={`rounded-lg border p-4 space-y-3 ${isCorrect ? "border-secondary/50 bg-secondary/5" : "border-alert/50 bg-alert/5"}`}>
+              <div key={`${stepId}-${q.id}`} className={`rounded-lg border p-4 space-y-3 ${isCorrect ? "border-secondary/50 bg-secondary/5" : "border-alert/50 bg-alert/5"}`}>
                 <div className="flex items-center gap-2">
                   <span className="text-lg">{isCorrect ? "✅" : "❌"}</span>
                   <h4 className="text-sm font-semibold">Question {qIdx + 1}</h4>
@@ -526,7 +668,7 @@ function QuizView({ step, answers, submitted, onAnswer, onSubmit, onRetake }: {
                 <p className="text-sm text-gray-800">{q.prompt}</p>
                 <div className="space-y-1 text-sm">
                   {q.options.map((opt, oIdx) => (
-                    <div key={`${q.id}-${oIdx}`} className={`rounded px-3 py-2 ${
+                    <div key={`${stepId}-${q.id}-${oIdx}`} className={`rounded px-3 py-2 ${
                       oIdx === q.correctIndex ? "bg-secondary/20 text-secondary font-medium"
                         : oIdx === userAnswer ? "bg-alert/20 text-alert" : "text-gray-500"
                     }`}>

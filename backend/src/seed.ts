@@ -21,11 +21,12 @@ async function main() {
   // Upsert the demo user.
   const user = await prisma.user.upsert({
     where: { email: DEMO_EMAIL },
-    update: {},
+    update: { isAdmin: false },
     create: {
       email: DEMO_EMAIL,
       name: "Demo Nurse",
       passwordHash,
+      verified: true,
     },
   });
 
@@ -58,11 +59,12 @@ async function main() {
   // Also create a second sample user so the leaderboard isn't empty.
   const user2 = await prisma.user.upsert({
     where: { email: "trainee@nursepath.app" },
-    update: {},
+    update: { isAdmin: false },
     create: {
       email: "trainee@nursepath.app",
       name: "Trainee Santos",
       passwordHash: await bcrypt.hash("nurse123", 10),
+      verified: true,
     },
   });
   const sample2 = allSteps().slice(0, 6);

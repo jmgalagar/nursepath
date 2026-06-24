@@ -14,7 +14,7 @@ export default function NavLink({
           "rounded-md px-3 py-2 text-sm font-medium transition-colors",
           isActive
             ? "bg-primary/10 text-primary"
-            : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
           className,
         )
       }

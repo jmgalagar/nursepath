@@ -1,6 +1,8 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import NavLink from "./NavLink";
+import ThemeToggle from "./ThemeToggle";
+import FeedbackButton from "./FeedbackButton";
 
 export default function Layout() {
   const { user, gamification, logout } = useAuth();
@@ -8,7 +10,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Top nav */}
-      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/80 backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/80 dark:bg-gray-800 dark:border-gray-600 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           {/* Logo */}
           <a href="/dashboard" className="flex items-center gap-2 text-lg font-bold text-primary">
@@ -21,6 +23,7 @@ export default function Layout() {
             <NavLink to="/dashboard">Dashboard</NavLink>
             <NavLink to="/courses">Courses</NavLink>
             <NavLink to="/leaderboard">Leaderboard</NavLink>
+            {user?.isAdmin && <NavLink to="/admin">Admin</NavLink>}
           </nav>
 
           {/* User info */}
@@ -38,14 +41,15 @@ export default function Layout() {
                 )}
               </div>
             )}
-            <div className="flex items-center gap-2">
+            <Link to="/profile" className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
                 {user?.name?.charAt(0).toUpperCase() ?? "U"}
               </div>
-              <span className="hidden text-sm font-medium text-gray-700 sm:inline">
+              <span className="hidden text-sm font-medium text-gray-700 sm:inline hover:text-primary transition-colors">
                 {user?.name}
               </span>
-            </div>
+            </Link>
+            <ThemeToggle />
             <button
               onClick={logout}
               className="btn-ghost text-xs px-2 py-1.5"
@@ -56,24 +60,26 @@ export default function Layout() {
         </div>
 
         {/* Mobile nav */}
-        <nav className="flex border-t border-gray-100 sm:hidden">
-          <NavLink to="/dashboard" className="flex-1 justify-center py-2">Dashboard</NavLink>
-          <NavLink to="/courses" className="flex-1 justify-center py-2">Courses</NavLink>
-          <NavLink to="/leaderboard" className="flex-1 justify-center py-2">Ranks</NavLink>
-          <NavLink to="/profile" className="flex-1 justify-center py-2">Profile</NavLink>
+        <nav className="flex border-t border-gray-100 dark:border-gray-700 sm:hidden">
+          <NavLink to="/dashboard" className="flex-1 justify-center py-3 text-xs">Dashboard</NavLink>
+          <NavLink to="/courses" className="flex-1 justify-center py-3 text-xs">Courses</NavLink>
+          <NavLink to="/leaderboard" className="flex-1 justify-center py-3 text-xs">Ranks</NavLink>
+          {user?.isAdmin && <NavLink to="/admin" className="flex-1 justify-center py-3 text-xs">Admin</NavLink>}
+          <NavLink to="/profile" className="flex-1 justify-center py-3 text-xs">Profile</NavLink>
         </nav>
       </header>
 
       {/* Main */}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 dark:text-gray-300">
         <Outlet />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white py-6 text-center text-xs text-gray-500">
+      <footer className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-6 text-center text-xs text-gray-500 dark:text-gray-400">
         <p>© 2026 NursePath — Philippine BSN Curriculum Learning Platform</p>
         <p className="mt-1">Based on CHED CMO No. 14, s. 2009</p>
       </footer>
+      <FeedbackButton />
     </div>
   );
 }

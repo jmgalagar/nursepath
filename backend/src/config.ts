@@ -28,6 +28,8 @@ export const config = {
   port: Number(process.env.PORT ?? 4000),
   jwtSecret: JWT_SECRET,
   databaseUrl: DATABASE_URL,
-  // Frontend origin for CORS.
   frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
+  resendApiKey: process.env.RESEND_API_KEY ?? "",
+  verifyUrl: process.env.VERIFY_URL ?? "http://localhost:5173/verify",
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
 };

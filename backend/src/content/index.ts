@@ -66,6 +66,28 @@ export const COURSES: Course[] = [
 export const ALL_BADGES: Badge[] = BADGES;
 
 /* ----------------------------------------------------------------------------
+ * Post-processing: ensure every quiz question has a globally unique id.
+ * Hand-authored courses (e.g. ncm103) may use generic IDs like `q1` / `q2`
+ * that collide across quizzes within the same course.
+ * ------------------------------------------------------------------------- */
+
+for (const c of COURSES) {
+  for (const u of c.units) {
+    for (const p of u.pathways) {
+      for (const s of p.steps) {
+        if (s.kind === "quiz") {
+          const quiz = s as import("@nursepath/shared").QuizStep;
+          quiz.questions = quiz.questions.map((q, qi) => ({
+            ...q,
+            id: `${s.id}-q${qi + 1}`,
+          }));
+        }
+      }
+    }
+  }
+}
+
+/* ----------------------------------------------------------------------------
  * Lookup helpers (used by routes + gamification engine)
  * ------------------------------------------------------------------------- */
 

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { Input, Button, CardBody } from "../components/ui";
+import GoogleSignIn from "../components/GoogleSignIn";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -27,7 +28,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white to-secondary/5 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 via-white dark:via-gray-950 to-secondary/5 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
@@ -70,6 +71,17 @@ export default function LoginPage() {
                 {loading ? "Signing in…" : "Sign in"}
               </Button>
             </form>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-2 text-gray-400">or</span>
+              </div>
+            </div>
+
+            <GoogleSignIn />
 
             <p className="text-center text-sm text-gray-500">
               Don&apos;t have an account?{" "}

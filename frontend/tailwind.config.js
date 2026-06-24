@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 // NursePath design tokens — medical theme from the spec.
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
