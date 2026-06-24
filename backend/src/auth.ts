@@ -43,18 +43,19 @@ authRouter.post("/register", async (req: Request, res: Response, next: NextFunct
     const passwordHash = await bcrypt.hash(password, 10);
     const verificationToken = crypto.randomBytes(32).toString("hex");
 
+    const canSendEmail = !!config.resendApiKey;
     const user = await prisma.user.create({
       data: {
         email,
         name: name ?? email.split("@")[0],
         passwordHash,
-        verified: config.isTest, // auto-verify in test mode
-        verificationToken: config.isTest ? null : verificationToken,
+        verified: config.isTest || !canSendEmail, // auto-verify if no email service
+        verificationToken: config.isTest || !canSendEmail ? null : verificationToken,
       },
     });
 
-    // In test mode, return a JWT immediately (no real email possible).
-    if (config.isTest) {
+    // When no email service is configured, return a JWT immediately.
+    if (config.isTest || !canSendEmail) {
       const token = sign(user);
       const body: AuthResponse = { token, user: toAuthUser(user) };
       return res.status(201).json(body);
