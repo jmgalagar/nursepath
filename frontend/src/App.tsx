@@ -26,6 +26,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  if (!user.isAdmin) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
 function GuestRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) {
@@ -76,7 +90,7 @@ export default function App() {
         <Route path="/pathways/:pathwayId" element={<PathwayPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/leaderboard" element={<LeaderboardPage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
       </Route>
 
       {/* Default */}
