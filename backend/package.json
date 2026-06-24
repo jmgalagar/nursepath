@@ -16,7 +16,8 @@
     "prisma:migrate": "prisma migrate dev --name init",
     "prisma:migrate:postgres": "prisma migrate dev --name init --schema=prisma/schema.postgres.prisma",
     "prisma:reset": "prisma migrate reset --force",
-    "seed": "tsx src/seed.ts"
+    "seed": "tsx src/seed.ts",
+    "seed:postgres": "prisma generate --schema=prisma/schema.postgres.prisma && tsx src/seed.ts && prisma generate"
   },
   "prisma": {
     "seed": "tsx src/seed.ts"

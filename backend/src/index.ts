@@ -12,7 +12,7 @@ export function createApp() {
 
   app.use(cors({ origin: config.frontendOrigin, credentials: true }));
   app.use(express.json());
-  app.use(helmet());
+  app.use(helmet({ crossOriginOpenerPolicy: false, crossOriginResourcePolicy: false }));
 
   // Global rate limit: 200 requests / minute / IP.
   const apiLimiter = rateLimit({
